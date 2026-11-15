@@ -30,8 +30,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 </style>
 </head>
 <body class="pb-24">
-
-<!-- PANTALLA LOGIN -->
 <div id="pantallaLogin" class="min-h-screen flex items-center justify-center px-4">
   <div class="card p-6 w-full max-w-sm text-center">
     <div class="text-[28px] font-black text-[#1e3a8a]">Mi Ruta</div>
@@ -40,8 +38,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
     <div id="loginError" class="text-[12px] text-red-600 mt-3"></div>
   </div>
 </div>
-
-<!-- APP -->
 <div id="appPrincipal" class="hidden">
 <div class="bg-[#1e3a8a] text-white px-4 pt-6 pb-5 rounded-b-[28px]"><div class="max-w-5xl mx-auto text-center"><div id="nombreChofer" onclick="cambiarNombre()" class="text-[26px] font-black cursor-pointer"></div><div class="text-[10px] opacity-60 mt-1">tocá el nombre para editar</div><div id="emailUsuario" class="text-[11px] opacity-70 mt-1"></div><button onclick="cerrarSesion()" class="text-[11px] bg-white/20 px-3 py-1 rounded-full mt-2">Cerrar sesión</button></div></div>
 <div class="max-w-5xl mx-auto px-3 -mt-3 space-y-4">
@@ -69,7 +65,6 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 <div class="flex gap-2"><button onclick="exportar()" class="flex-1 bg-white border border-[#1e3a8a] text-[#1e3a8a] font-bold py-3 rounded-xl text-sm">Exportar Excel</button><button onclick="borrarTodo()" class="flex-1 bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm">Borrar todo</button></div>
 </div>
 </div>
-
 <div id="modalFinal" class="modal" onclick="if(event.target.id==='modalFinal')cerrarFinal()">
 <div class="modal-content">
 <div class="flex justify-between items-center mb-3"><h2 class="font-black text-[18px] text-[#1e3a8a]">PLANILLA FINAL - DETALLE PARA COPIAR</h2><button onclick="cerrarFinal()" class="bg-gray-200 px-4 py-2 rounded-full font-bold">X</button></div>
@@ -80,16 +75,10 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 <div class="flex gap-2 mt-4"><button onclick="imprimirFinal()" class="flex-1 bg-[#1e3a8a] text-white font-bold py-3 rounded-xl">🖨️ Imprimir / PDF</button><button onclick="exportarPeriodo()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📥 Excel de este periodo</button></div>
 </div>
 </div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// ============================================================
-// 👉 PASO 1 - PEGAR ACA TUS DATOS DE FIREBASE
-// Firebase te da esto cuando creas la app web. Copialo tal cual.
-// ============================================================
 const firebaseConfig = {
   apiKey: "AIzaSyBtE7xSCMKB5jgW3yXv7fwAEVvLDW4RLlw",
   authDomain: "mi-ruta-eb2c3.firebaseapp.com",
@@ -99,25 +88,17 @@ const firebaseConfig = {
   appId: "1:252338478970:web:4736b1046f80e4cdbdc0c3",
   measurementId: "G-90SRM536BY"
 };
-// ============================================================
-// FIN DE LO QUE TENES QUE PEGAR - ABAJO NO TOQUES NADA
-// ============================================================
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
-
 let registros = [];
 let nombreGuardado = "";
 let usuarioActual = null;
-
 let hoyISO = new Date().toISOString().slice(0,10);
 document.getElementById('fSalida').value = hoyISO;
 document.getElementById('fLlegada').value = hoyISO;
-
 function getDefaultPeriodo(){let hoy=new Date();let y=hoy.getFullYear(),m=hoy.getMonth();let desde=new Date(y,m,15);let hasta=new Date(y,m+1,15);if(hoy.getDate()<15){desde=new Date(y,m-1,15);hasta=new Date(y,m,15);}return {d:desde.toISOString().slice(0,10),h:hasta.toISOString().slice(0,10)};}
-
 async function guardarEnNube(){
   if(!usuarioActual) return;
   await setDoc(doc(db, "usuarios", usuarioActual.uid), {
@@ -153,18 +134,10 @@ async function cargarDeNube(){
   render(); check100(); verHora();
   await guardarEnNube();
 }
-
 window.loginGoogle = async () => {
-  try{
-    // En celular funciona mejor con redirect que con popup
-    await signInWithRedirect(auth, provider);
-  } catch(e){
-    try{ await signInWithPopup(auth, provider); }
-    catch(e2){ document.getElementById('loginError').textContent = "No se pudo entrar: " + e2.message; }
-  }
+  await signInWithRedirect(auth, provider);
 };
 window.cerrarSesion = async () => { await signOut(auth); };
-
 onAuthStateChanged(auth, async (user)=>{
   if(user){
     usuarioActual = user;
@@ -178,7 +151,6 @@ onAuthStateChanged(auth, async (user)=>{
   }
 });
 getRedirectResult(auth).catch(()=>{});
-
 window.verHora = function(){document.getElementById('verSalida').textContent=(document.getElementById('hSalida').value||'--:--')+' hs';document.getElementById('verLlegada').textContent=(document.getElementById('hLlegada').value||'--:--')+' hs';}
 window.guardarPeriodo = async function(){ await guardarEnNube(); }
 window.setPeriodoActual = function(){let p=getDefaultPeriodo();document.getElementById('perDesde').value=p.d;document.getElementById('perHasta').value=p.h;guardarEnNube();render();}
