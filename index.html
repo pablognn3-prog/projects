@@ -33,9 +33,13 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 <div id="pantallaLogin" class="min-h-screen flex items-center justify-center px-4">
   <div class="card p-6 w-full max-w-sm text-center">
     <div class="text-[28px] font-black text-[#1e3a8a]">Mi Ruta</div>
-    <p class="text-[13px] text-gray-500 mt-2">Entrá con tu Gmail para que tus viajes se guarden en la nube y no se pierdan.</p>
-    <button onclick="loginGoogle()" class="w-full bg-[#1e3a8a] text-white font-black py-4 rounded-xl mt-5">Entrar con Google</button>
+    <p class="text-[13px] text-gray-500 mt-2">Entrá con tu Gmail para que tus viajes se guarden y no se pierdan.</p>
+    <input id="emailLogin" type="email" class="input-field mt-5" placeholder="tu Gmail, ej: juan@gmail.com">
+    <input id="passLogin" type="password" class="input-field mt-2" placeholder="contraseña (mínimo 6)">
+    <button onclick="loginEmail()" class="w-full bg-[#1e3a8a] text-white font-black py-4 rounded-xl mt-3">Entrar con mi Gmail</button>
+    <button onclick="crearCuentaEmail()" class="w-full text-[12px] text-[#1e3a8a] font-bold mt-3 underline">¿Primera vez? Crear cuenta con este Gmail</button>
     <div id="loginError" class="text-[12px] text-red-600 mt-3"></div>
+    <p class="text-[11px] text-gray-400 mt-3">Anda en WhatsApp, iPhone y Android.</p>
   </div>
 </div>
 <div id="appPrincipal" class="hidden">
@@ -77,7 +81,7 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const firebaseConfig = {
   apiKey: "AIzaSyBtE7xSCMKB5jgW3yXv7fwAEVvLDW4RLlw",
@@ -91,7 +95,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const provider = new GoogleAuthProvider();
 let registros = [];
 let nombreGuardado = "";
 let usuarioActual = null;
@@ -134,18 +137,21 @@ async function cargarDeNube(){
   render(); check100(); verHora();
   await guardarEnNube();
 }
-window.loginGoogle = async () => {
+window.loginEmail = async () => {
   const el = document.getElementById('loginError');
-  el.textContent = '';
-  try {
-    await signInWithPopup(auth, provider);
-  } catch(e) {
-    if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request'){
-      try { await signInWithRedirect(auth, provider); } catch(e2){ el.textContent = e2.message; }
-    } else {
-      el.textContent = e.code + ' - ' + e.message;
-    }
-  }
+  const email = document.getElementById('emailLogin').value.trim();
+  const pass = document.getElementById('passLogin').value;
+  if(!email || !pass){ el.textContent='Poné tu Gmail y tu contraseña'; return; }
+  try { await signInWithEmailAndPassword(auth, email, pass); }
+  catch(e){ el.textContent='No se pudo entrar. Si es la primera vez tocá Crear cuenta con este Gmail.'; }
+};
+window.crearCuentaEmail = async () => {
+  const el = document.getElementById('loginError');
+  const email = document.getElementById('emailLogin').value.trim();
+  const pass = document.getElementById('passLogin').value;
+  if(!email || pass.length < 6){ el.textContent='Poné tu Gmail y una contraseña de mínimo 6'; return; }
+  try { await createUserWithEmailAndPassword(auth, email, pass); }
+  catch(e){ el.textContent = e.code === 'auth/email-already-in-use' ? 'Ese Gmail ya tiene cuenta, tocá Entrar con mi Gmail' : e.message; }
 };
 window.cerrarSesion = async () => { await signOut(auth); };
 onAuthStateChanged(auth, async (user)=>{
@@ -159,9 +165,6 @@ onAuthStateChanged(auth, async (user)=>{
     document.getElementById('pantallaLogin').style.display = 'flex';
     document.getElementById('appPrincipal').classList.add('hidden');
   }
-});
-getRedirectResult(auth).catch((e)=>{
-  if(e) document.getElementById('loginError').textContent = e.code + ' - ' + e.message;
 });
 window.verHora = function(){document.getElementById('verSalida').textContent=(document.getElementById('hSalida').value||'--:--')+' hs';document.getElementById('verLlegada').textContent=(document.getElementById('hLlegada').value||'--:--')+' hs';}
 window.guardarPeriodo = async function(){ await guardarEnNube(); }
@@ -217,6 +220,11 @@ window.cerrarFinal = function(){document.getElementById('modalFinal').style.disp
 window.imprimirFinal = function(){window.print();}
 window.exportar = function(){let csv="Chofer,"+nombreGuardado+"\nHora,Dia,Fecha,Sale de,Hora,Dia,Fecha Llega,Llegada a,Km Comunes,Km 100,Km Viatico,Control\n";registros.forEach(r=>{csv+=`${r.hS},${r.dS},${r.fS},${r.sale},${r.hL},${r.dL},${r.fL},${r.llega},${r.kmComunes},${r.km100},${r.kmViatico},${r.control}\n`});let blob=new Blob([csv],{type:'text/csv'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download='mi_ruta.csv';a.click();}
 window.exportarPeriodo = function(){let fil=filtradosPeriodo();let d=document.getElementById('perDesde').value,h=document.getElementById('perHasta').value;let csv=`Planilla ${nombreGuardado} - ${d} al ${h}\nN,Hora Sal,Dia,Fecha Sal,Sale de,Hora Lleg,Dia,Fecha Lleg,Llegada a,Km Comunes,Km 100,Km Viatico,Control\n`;fil.forEach((r,i)=>{csv+=`${i+1},${r.hS},${r.dS},${r.fS},${r.sale},${r.hL},${r.dL},${r.fL},${r.llega},${r.kmComunes},${r.km100},${r.kmViatico},${r.control}\n`});let blob=new Blob([csv],{type:'text/csv'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=`planilla_${d}_al_${h}.csv`;a.click();}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>
