@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mi Ruta</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3a8a">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body{font-family:Inter,sans-serif;background:#eef2f7}
+.card{border-radius:20px;background:white;box-shadow:0 4px 20px rgba(30,58,138,0.08);border:1px solid #e2e8f0}
+.input-field{background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 14px;width:100%;font-weight:600;color:#1e293b}
+.label{font-size:11px;font-weight:800;color:#1e3a8a;text-transform:uppercase;margin-bottom:4px;display:block}
+.table-wrap{overflow-x:auto}table{min-width:1150px;width:100%}th{background:#1e3a8a;color:white;font-size:11px;padding:10px 8px;white-space:nowrap;text-transform:uppercase}td{font-size:12px;padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:center}
+.alert100{background:#fff7ed;border:2px solid #f97316;border-radius:16px}
+.periodo{background:#eff6ff;border:2px solid #1e3a8a;border-radius:16px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:none;padding:10px;overflow:auto}
+.modal-content{background:white;border-radius:16px;max-width:1150px;margin:auto;padding:16px}
+.final-table{width:100%;border-collapse:collapse;min-width:1000px}
+.final-table th{font-size:10px;background:#1e3a8a;padding:12px 6px}
+.final-table td{border:1px solid #cbd5e1;padding:12px 6px;font-size:12px;font-weight:600}
+.hora-wrap{position:relative}
+.hora-ver{position:absolute;left:14px;top:50%;transform:translateY(-50%);background:#f1f5f9;font-weight:600;color:#1e293b;pointer-events:none;padding-right:6px}
+input[type="time"]{color:transparent}
+input[type="time"]::-webkit-datetime-edit-ampm-field{display:none}
+input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
+@media print{.modal{position:static;background:white;padding:0}.modal-content{box-shadow:none}button{display:none}}
+</style>
+</head>
+<body class="pb-24">
+
+<!-- PANTALLA LOGIN -->
+<div id="pantallaLogin" class="min-h-screen flex items-center justify-center px-4">
+  <div class="card p-6 w-full max-w-sm text-center">
+    <div class="text-[28px] font-black text-[#1e3a8a]">Mi Ruta</div>
+    <p class="text-[13px] text-gray-500 mt-2">Entrá con tu Gmail para que tus viajes se guarden en la nube y no se pierdan.</p>
+    <button onclick="loginGoogle()" class="w-full bg-[#1e3a8a] text-white font-black py-4 rounded-xl mt-5">Entrar con Google</button>
+    <div id="loginError" class="text-[12px] text-red-600 mt-3"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appPrincipal" class="hidden">
+<div class="bg-[#1e3a8a] text-white px-4 pt-6 pb-5 rounded-b-[28px]"><div class="max-w-5xl mx-auto text-center"><div id="nombreChofer" onclick="cambiarNombre()" class="text-[26px] font-black cursor-pointer"></div><div class="text-[10px] opacity-60 mt-1">tocá el nombre para editar</div><div id="emailUsuario" class="text-[11px] opacity-70 mt-1"></div><button onclick="cerrarSesion()" class="text-[11px] bg-white/20 px-3 py-1 rounded-full mt-2">Cerrar sesión</button></div></div>
+<div class="max-w-5xl mx-auto px-3 -mt-3 space-y-4">
+<div class="card p-4 periodo mt-4">
+<div class="flex justify-between items-center"><h2 class="font-black text-[#1e3a8a] text-[14px]">PERIODO DE PLANILLA (15 al 15)</h2><button onclick="setPeriodoActual()" class="text-[11px] bg-[#1e3a8a] text-white px-3 py-1 rounded-full font-bold">Hoy → 15 al 15</button></div>
+<div class="grid grid-cols-2 gap-3 mt-3"><div><label class="label">Desde</label><input id="perDesde" type="date" class="input-field" onchange="guardarPeriodo();render()"></div><div><label class="label">Hasta</label><input id="perHasta" type="date" class="input-field" onchange="guardarPeriodo();render()"></div></div>
+<div class="grid grid-cols-3 gap-2 mt-3 text-center bg-white rounded-xl p-3 border"><div><div class="text-[10px] font-bold text-gray-500">KM COMUNES PERIODO</div><div id="perKmCom" class="font-black text-[#1e3a8a]">0 km</div></div><div><div class="text-[10px] font-bold text-gray-500">KM 100% PERIODO</div><div id="perKm100" class="font-black text-orange-600">0 km</div></div><div><div class="text-[10px] font-bold text-gray-500">CONTROLES PERIODO</div><div id="perCtrl" class="font-black text-green-700">0</div></div></div>
+<button onclick="verPlanillaFinal()" class="w-full bg-green-600 text-white font-black py-3 rounded-xl mt-3">📋 Ver Planilla Final para copiar a mano</button>
+</div>
+<div class="card overflow-hidden"><div class="bg-[#dbeafe] px-4 py-3 flex justify-between"><h2 class="font-black text-[#1e3a8a]">RUTA ACTUAL</h2><span class="bg-[#1e3a8a]/20 text-[#1e3a8a] text-[11px] font-bold px-3 py-1 rounded-full">ACTIVO</span></div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Día</th><th>Fecha</th><th>Sale de</th><th>Hora</th><th>Día</th><th>Fecha Llega</th><th>Llegada a</th><th>Km Comunes</th><th>Km 100</th><th>Km Viático</th><th>Control</th><th>X</th></tr></thead><tbody id="tbody"></tbody></table></div><div class="grid grid-cols-3 gap-2 p-3 bg-[#f8fafc] border-t"><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM</div><div id="totKm" class="font-black text-[#1e3a8a] text-lg">0 km</div></div><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM 100%</div><div id="tot100" class="font-black text-orange-600 text-lg">0 km</div></div><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM VIÁTICO</div><div id="totViat" class="font-black text-green-700 text-lg">0 km</div></div></div><div class="text-center text-[11px] text-gray-500 pb-3">Viático mínimo por viaje: 350 km</div></div>
+<div class="card p-5"><h2 class="text-[20px] font-black text-[#1e3a8a]">Nuevo registro</h2><div class="grid grid-cols-2 gap-3 mt-4">
+<div><label class="label">Hora salida</label><div class="hora-wrap"><input id="hSalida" type="time" class="input-field" value="08:30" oninput="check100();verHora()"><span id="verSalida" class="hora-ver">08:30 hs</span></div></div>
+<div><label class="label">Día salida</label><select id="dSalida" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
+<div><label class="label">Fecha salida</label><input id="fSalida" type="date" class="input-field"></div>
+<div><label class="label">Sale de</label><input id="saleDe" type="text" class="input-field" placeholder="ROSARIO"></div>
+<div><label class="label">Km Salida</label><input id="kmSalida" type="number" class="input-field" placeholder="125430"></div>
+<div><label class="label">Hora llegada</label><div class="hora-wrap"><input id="hLlegada" type="time" class="input-field" value="14:45" oninput="check100();verHora()"><span id="verLlegada" class="hora-ver">14:45 hs</span></div></div>
+<div><label class="label">Día llegada</label><select id="dLlegada" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
+<div><label class="label">Fecha llegada</label><input id="fLlegada" type="date" class="input-field"></div>
+<div><label class="label">Llega a</label><input id="llegaA" type="text" class="input-field" placeholder="CORDOBA"></div>
+<div><label class="label">Km Llegada</label><input id="kmLlegada" type="number" class="input-field" placeholder="125840" oninput="calcPreview()"></div>
+<div id="box100" class="col-span-2 hidden alert100 p-4 mt-2"><div class="text-[13px] font-black text-orange-600 mb-1">⚠️ ALERTA KM 100% • SÁB 13:00 A DOM 23:59</div><div class="text-[11px] text-gray-600 mb-3">Sábado 00:01-13:00 comunes, 13:00 en adelante 100%. Cargá odómetro de las 13hs.</div><div><label class="label" style="color:#ea580c">Km Corte Sábado 13:00</label><input id="kmCorte13" type="number" class="input-field" style="background:#ffedd5;border-color:#fb923c" placeholder="Ej: 100200" oninput="calcPreview()"></div><div id="calc100" class="text-center mt-3 text-[12px] font-black text-orange-700"></div></div>
+<div class="col-span-2"><label class="label" style="color:#15803d">Control (N°)</label><input id="controlNum" type="number" class="input-field" style="background:#dcfce7;border-color:#16a34a" value="1"></div>
+</div><button onclick="guardar()" class="w-full bg-[#1e3a8a] text-white font-black py-4 rounded-xl mt-5">Guardar y Calcular Ruta</button></div>
+<div class="flex gap-2"><button onclick="exportar()" class="flex-1 bg-white border border-[#1e3a8a] text-[#1e3a8a] font-bold py-3 rounded-xl text-sm">Exportar Excel</button><button onclick="borrarTodo()" class="flex-1 bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm">Borrar todo</button></div>
+</div>
+</div>
+
+<div id="modalFinal" class="modal" onclick="if(event.target.id==='modalFinal')cerrarFinal()">
+<div class="modal-content">
+<div class="flex justify-between items-center mb-3"><h2 class="font-black text-[18px] text-[#1e3a8a]">PLANILLA FINAL - DETALLE PARA COPIAR</h2><button onclick="cerrarFinal()" class="bg-gray-200 px-4 py-2 rounded-full font-bold">X</button></div>
+<div id="finalHead" class="bg-[#1e3a8a] text-white p-4 rounded-xl mb-3"></div>
+<div class="table-wrap border-2 border-gray-300 rounded-xl overflow-hidden"><table id="tablaFinal" class="final-table"></table></div>
+<div id="finalResumen" class="grid grid-cols-3 gap-2 mt-3 bg-yellow-50 border-2 border-yellow-300 p-3 rounded-xl text-center"></div>
+<div id="finalDetalleMano" class="mt-4 bg-[#f8fafc] border rounded-xl p-4 text-[13px] leading-6"></div>
+<div class="flex gap-2 mt-4"><button onclick="imprimirFinal()" class="flex-1 bg-[#1e3a8a] text-white font-bold py-3 rounded-xl">🖨️ Imprimir / PDF</button><button onclick="exportarPeriodo()" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl">📥 Excel de este periodo</button></div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ============================================================
+// 👉 PASO 1 - PEGAR ACA TUS DATOS DE FIREBASE
+// Firebase te da esto cuando creas la app web. Copialo tal cual.
+// ============================================================
+const firebaseConfig = {
+  apiKey: "PEGAR_ACA_TU_APIKEY",
+  authDomain: "PEGAR_ACA_TU_PROJECT.firebaseapp.com",
+  projectId: "PEGAR_ACA_TU_PROJECT",
+  storageBucket: "PEGAR_ACA_TU_PROJECT.appspot.com",
+  messagingSenderId: "PEGAR_ACA",
+  appId: "PEGAR_ACA"
+};
+// ============================================================
+// FIN DE LO QUE TENES QUE PEGAR - ABAJO NO TOQUES NADA
+// ============================================================
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+let registros = [];
+let nombreGuardado = "";
+let usuarioActual = null;
+
+let hoyISO = new Date().toISOString().slice(0,10);
+document.getElementById('fSalida').value = hoyISO;
+document.getElementById('fLlegada').value = hoyISO;
+
+function getDefaultPeriodo(){let hoy=new Date();let y=hoy.getFullYear(),m=hoy.getMonth();let desde=new Date(y,m,15);let hasta=new Date(y,m+1,15);if(hoy.getDate()<15){desde=new Date(y,m-1,15);hasta=new Date(y,m,15);}return {d:desde.toISOString().slice(0,10),h:hasta.toISOString().slice(0,10)};}
+
+async function guardarEnNube(){
+  if(!usuarioActual) return;
+  await setDoc(doc(db, "usuarios", usuarioActual.uid), {
+    nombre: nombreGuardado,
+    registros: registros,
+    periodo: {d: document.getElementById('perDesde').value, h: document.getElementById('perHasta').value},
+    actualizado: new Date().toISOString()
+  });
+}
+async function cargarDeNube(){
+  const snap = await getDoc(doc(db, "usuarios", usuarioActual.uid));
+  if(snap.exists()){
+    const data = snap.data();
+    registros = (data.registros || []).map(r=>({...r, kmViatico: Math.max(r.kmComunes + r.km100, 350)}));
+    nombreGuardado = data.nombre || "";
+    if(data.periodo){
+      document.getElementById('perDesde').value = data.periodo.d;
+      document.getElementById('perHasta').value = data.periodo.h;
+    }
+  } else {
+    registros = [];
+    nombreGuardado = "";
+    let p = getDefaultPeriodo();
+    document.getElementById('perDesde').value = p.d;
+    document.getElementById('perHasta').value = p.h;
+  }
+  if(!nombreGuardado){
+    let nuevo = prompt('¿Cómo te llamás? Ej: GUTIERREZ PABLO');
+    if(nuevo && nuevo.trim()!==''){ nombreGuardado = nuevo.trim().toUpperCase(); }
+  }
+  document.getElementById('nombreChofer').textContent = nombreGuardado || "SIN NOMBRE";
+  document.getElementById('emailUsuario').textContent = usuarioActual.email;
+  render(); check100(); verHora();
+  await guardarEnNube();
+}
+
+window.loginGoogle = async () => {
+  try{
+    // En celular funciona mejor con redirect que con popup
+    await signInWithRedirect(auth, provider);
+  } catch(e){
+    try{ await signInWithPopup(auth, provider); }
+    catch(e2){ document.getElementById('loginError').textContent = "No se pudo entrar: " + e2.message; }
+  }
+};
+window.cerrarSesion = async () => { await signOut(auth); };
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user){
+    usuarioActual = user;
+    document.getElementById('pantallaLogin').style.display = 'none';
+    document.getElementById('appPrincipal').classList.remove('hidden');
+    await cargarDeNube();
+  } else {
+    usuarioActual = null;
+    document.getElementById('pantallaLogin').style.display = 'flex';
+    document.getElementById('appPrincipal').classList.add('hidden');
+  }
+});
+getRedirectResult(auth).catch(()=>{});
+
+window.verHora = function(){document.getElementById('verSalida').textContent=(document.getElementById('hSalida').value||'--:--')+' hs';document.getElementById('verLlegada').textContent=(document.getElementById('hLlegada').value||'--:--')+' hs';}
+window.guardarPeriodo = async function(){ await guardarEnNube(); }
+window.setPeriodoActual = function(){let p=getDefaultPeriodo();document.getElementById('perDesde').value=p.d;document.getElementById('perHasta').value=p.h;guardarEnNube();render();}
+window.cambiarNombre = async function(){let nuevo=prompt('Ingresá el nombre:',document.getElementById('nombreChofer').textContent);if(nuevo&&nuevo.trim()!==''){nuevo=nuevo.trim().toUpperCase();document.getElementById('nombreChofer').textContent=nuevo;nombreGuardado=nuevo;await guardarEnNube();}}
+function esVentana100(dia,hora){if(dia==='Dom')return true;if(dia==='Sab'){let h=parseInt(hora.split(':')[0])||0;if(h>=13)return true;}return false;}
+window.check100 = function(){let dS=document.getElementById('dSalida').value,hS=document.getElementById('hSalida').value,dL=document.getElementById('dLlegada').value,hL=document.getElementById('hLlegada').value;let box=document.getElementById('box100');if(dS==='Sab'||dL==='Sab'||dS==='Dom'||dL==='Dom'||esVentana100(dS,hS)||esVentana100(dL,hL)){box.classList.remove('hidden');}else{box.classList.add('hidden');}calcPreview();}
+function calcPreview(){let kmS=parseInt(document.getElementById('kmSalida').value)||0,kmL=parseInt(document.getElementById('kmLlegada').value)||0,corte=parseInt(document.getElementById('kmCorte13').value)||0;let el=document.getElementById('calc100');if(kmS>0&&kmL>0&&corte>0&&corte>kmS&&corte<kmL){let comunes=corte-kmS,c100=kmL-corte;el.innerHTML=`Comunes (00:01-13:00): ${comunes} km<br>100% (13:00+): ${c100} km`;}else{el.textContent='';}}
+window.calcPreview = calcPreview;
+function filtradosPeriodo(){let d=document.getElementById('perDesde').value,h=document.getElementById('perHasta').value;return registros.filter(r=>{let f=r.fS||'';return f>=d&&f<=h;});}
+window.guardar = async function(){
+ const hS=document.getElementById('hSalida').value,dS=document.getElementById('dSalida').value,fS=document.getElementById('fSalida').value,sale=document.getElementById('saleDe').value.toUpperCase(),llega=document.getElementById('llegaA').value.toUpperCase(),kmS=parseInt(document.getElementById('kmSalida').value)||0,hL=document.getElementById('hLlegada').value,dL=document.getElementById('dLlegada').value,fL=document.getElementById('fLlegada').value,kmL=parseInt(document.getElementById('kmLlegada').value)||0,ctrl=document.getElementById('controlNum').value||'1',corte=parseInt(document.getElementById('kmCorte13').value)||0;
+ if(!sale||!llega||kmS===0||kmL===0){alert('Completa datos');return;}if(kmL<=kmS){alert('Llegada > Salida');return;}
+ let kmTotal=kmL-kmS,km100=0,kmCom=0;
+ if(dS==='Sab'&&dL==='Sab'){
+   let hSi=parseInt(hS.split(':')[0])||0;
+   let hLi=(hL==='00:00')?24:(parseInt(hL.split(':')[0])||0);
+   if(hSi<13&&hLi>=13){if(corte>0&&corte>kmS&&corte<kmL){kmCom=corte-kmS;km100=kmL-corte;}else{alert('Cargá el Km Corte 13:00');return;}}else if(hSi>=13&&hLi>=13){km100=kmTotal;kmCom=0;}else{kmCom=kmTotal;km100=0;}
+ }else if(dS==='Dom'||dL==='Dom'){km100=kmTotal;kmCom=0;}else if(dS==='Sab'&&esVentana100(dS,hS)){km100=kmTotal;kmCom=0;}else if(dL==='Sab'&&esVentana100(dL,hL)){if(corte>0){kmCom=corte-kmS;km100=kmL-corte;}else{km100=kmTotal;kmCom=0;}}else{kmCom=kmTotal;km100=0;}
+ let kmViatico=Math.max(kmTotal,350);
+ registros.push({hS,dS,fS,sale,hL,dL,fL,llega,kmComunes:kmCom,km100,kmViatico,control:ctrl});
+ await guardarEnNube(); render();
+ document.getElementById('saleDe').value='';document.getElementById('llegaA').value='';document.getElementById('kmSalida').value=kmL;document.getElementById('kmLlegada').value='';document.getElementById('kmCorte13').value='';document.getElementById('calc100').textContent='';check100();
+}
+window.render = function(){
+ const tb=document.getElementById('tbody');let fil=filtradosPeriodo();
+ if(registros.length===0){tb.innerHTML='<tr><td colspan=13 style=padding:30px;text-align:center>Sin registros</td></tr>';}else{
+  let html='',tk=0,t100=0,tv=0;registros.forEach((r,i)=>{tk+=r.kmComunes;t100+=r.km100;tv+=r.kmViatico;html+=`<tr><td>${r.hS}</td><td>${r.dS}</td><td>${r.fS}</td><td style=font-weight:800>${r.sale}</td><td>${r.hL}</td><td>${r.dL}</td><td>${r.fL}</td><td style=font-weight:800>${r.llega}</td><td>${r.kmComunes} km</td><td style="${r.km100>0?'color:#ea580c;font-weight:800':''}">${r.km100>0?r.km100+' km':'-'}</td><td style=font-weight:900;color:green>${r.kmViatico} km</td><td>${r.control}</td><td><button onclick="borrarUno(${i})" style="background:#fee2e2;color:#dc2626;font-weight:900;padding:4px 10px;border-radius:8px">X</button></td></tr>`});tb.innerHTML=html;
+  document.getElementById('totKm').textContent=tk+' km';document.getElementById('tot100').textContent=t100+' km';document.getElementById('totViat').textContent=tv+' km';
+ }
+ let pkCom=0,pk100=0,ctrlCount=0;fil.forEach(r=>{pkCom+=r.kmComunes;pk100+=r.km100;ctrlCount+=parseInt(r.control)||0;});
+ document.getElementById('perKmCom').textContent=pkCom+' km';document.getElementById('perKm100').textContent=pk100+' km';document.getElementById('perCtrl').textContent=ctrlCount+' controles';
+}
+window.borrarUno = async function(i){registros.splice(i,1);await guardarEnNube();render();}
+window.borrarTodo = async function(){if(confirm('¿Borrar todos?')){registros=[];await guardarEnNube();render();}}
+window.verPlanillaFinal = function(){
+ let fil=filtradosPeriodo();let d=document.getElementById('perDesde').value,h=document.getElementById('perHasta').value;
+ let pkCom=0,pk100=0,pkViat=0,ctrlCount=0;fil.forEach(r=>{pkCom+=r.kmComunes;pk100+=r.km100;pkViat+=r.kmViatico;ctrlCount+=parseInt(r.control)||0;});
+ document.getElementById('finalHead').innerHTML=`<div class="text-[11px] opacity-80">Mi Ruta • CCT 40/89 • Libro de Ruta</div><div class="text-[22px] font-black">${nombreGuardado}</div><div class="text-[13px] mt-1">PERIODO: ${d.split('-').reverse().join('/')} al ${h.split('-').reverse().join('/')} | Viajes: ${fil.length}</div>`;
+ let tabla=`<thead><tr><th>N°</th><th>Hora Sal</th><th>Día</th><th>Fecha Sal</th><th>Sale de</th><th>Hora Lleg</th><th>Día</th><th>Fecha Lleg</th><th>Llegada a</th><th>Km Com</th><th>Km 100</th><th>Km Viat</th><th>Ctrl</th></tr></thead><tbody>`;
+ let detalleTexto='';
+ fil.forEach((r,i)=>{
+   tabla+=`<tr><td>${i+1}</td><td>${r.hS}</td><td>${r.dS}</td><td>${r.fS.split('-').reverse().join('/')}</td><td style=font-weight:800>${r.sale}</td><td>${r.hL}</td><td>${r.dL}</td><td>${r.fL.split('-').reverse().join('/')}</td><td style=font-weight:800>${r.llega}</td><td>${r.kmComunes}</td><td>${r.km100}</td><td style=font-weight:900>${r.kmViatico}</td><td>${r.control}</td></tr>`;
+   detalleTexto+=`<div style="border-bottom:1px dashed #cbd5e1;padding:8px 0"><b>${i+1})</b> ${r.fS.split('-').reverse().join('/')} ${r.hS} ${r.dS} <b>${r.sale}</b> → ${r.fL.split('-').reverse().join('/')} ${r.hL} ${r.dL} <b>${r.llega}</b> | Comunes: <b>${r.kmComunes} km</b> | 100%: <b>${r.km100} km</b> | Viático: <b>${r.kmViatico} km</b> | Controles: <b>${r.control}</b></div>`;
+ });
+ if(fil.length===0){tabla+=`<tr><td colspan=13>Sin viajes en este periodo</td></tr>`;detalleTexto='<div>Sin viajes en este periodo</div>';}
+ tabla+=`</tbody>`;document.getElementById('tablaFinal').innerHTML=tabla;
+ document.getElementById('finalResumen').innerHTML=`<div><div class="text-[10px] font-bold">KM COMUNES TOTAL</div><div class="font-black text-[18px]">${pkCom} km</div></div><div><div class="text-[10px] font-bold">KM 100% TOTAL</div><div class="font-black text-[18px]">${pk100} km</div></div><div><div class="text-[10px] font-bold">CONTROLES / VIÁTICO TOTAL</div><div class="font-black text-[18px]">${ctrlCount} / ${pkViat} km</div></div>`;
+ document.getElementById('finalDetalleMano').innerHTML=`<div class="font-black text-[#1e3a8a] mb-2">DETALLE PARA COPIAR A MANO EN PLANILLA OFICIAL:</div>${detalleTexto}`;
+ document.getElementById('modalFinal').style.display='block';
+}
+window.cerrarFinal = function(){document.getElementById('modalFinal').style.display='none';}
+window.imprimirFinal = function(){window.print();}
+window.exportar = function(){let csv="Chofer,"+nombreGuardado+"\nHora,Dia,Fecha,Sale de,Hora,Dia,Fecha Llega,Llegada a,Km Comunes,Km 100,Km Viatico,Control\n";registros.forEach(r=>{csv+=`${r.hS},${r.dS},${r.fS},${r.sale},${r.hL},${r.dL},${r.fL},${r.llega},${r.kmComunes},${r.km100},${r.kmViatico},${r.control}\n`});let blob=new Blob([csv],{type:'text/csv'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download='mi_ruta.csv';a.click();}
+window.exportarPeriodo = function(){let fil=filtradosPeriodo();let d=document.getElementById('perDesde').value,h=document.getElementById('perHasta').value;let csv=`Planilla ${nombreGuardado} - ${d} al ${h}\nN,Hora Sal,Dia,Fecha Sal,Sale de,Hora Lleg,Dia,Fecha Lleg,Llegada a,Km Comunes,Km 100,Km Viatico,Control\n`;fil.forEach((r,i)=>{csv+=`${i+1},${r.hS},${r.dS},${r.fS},${r.sale},${r.hL},${r.dL},${r.fL},${r.llega},${r.kmComunes},${r.km100},${r.kmViatico},${r.control}\n`});let blob=new Blob([csv],{type:'text/csv'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=`planilla_${d}_al_${h}.csv`;a.click();}
+</script>
+</body>
+</html>
