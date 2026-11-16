@@ -54,12 +54,12 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 <div class="card overflow-hidden"><div class="bg-[#dbeafe] px-4 py-3 flex justify-between"><h2 class="font-black text-[#1e3a8a]">RUTA ACTUAL</h2><span class="bg-[#1e3a8a]/20 text-[#1e3a8a] text-[11px] font-bold px-3 py-1 rounded-full">ACTIVO</span></div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Día</th><th>Fecha</th><th>Sale de</th><th>Hora</th><th>Día</th><th>Fecha Llega</th><th>Llegada a</th><th>Km Comunes</th><th>Km 100</th><th>Km Viático</th><th>Control</th><th>X</th></tr></thead><tbody id="tbody"></tbody></table></div><div class="grid grid-cols-3 gap-2 p-3 bg-[#f8fafc] border-t"><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM</div><div id="totKm" class="font-black text-[#1e3a8a] text-lg">0 km</div></div><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM 100%</div><div id="tot100" class="font-black text-orange-600 text-lg">0 km</div></div><div class="text-center"><div class="text-[10px] font-bold text-gray-500">TOTAL KM VIÁTICO</div><div id="totViat" class="font-black text-green-700 text-lg">0 km</div></div></div><div class="text-center text-[11px] text-gray-500 pb-3">Viático mínimo por viaje: 350 km</div></div>
 <div class="card p-5"><h2 class="text-[20px] font-black text-[#1e3a8a]">Nuevo registro</h2><div class="grid grid-cols-2 gap-3 mt-4">
 <div><label class="label">Hora salida</label><div class="hora-wrap"><input id="hSalida" type="time" class="input-field" value="08:30" oninput="check100();verHora()"><span id="verSalida" class="hora-ver">08:30 hs</span></div></div>
-<div><label class="label">Día salida</label><select id="dSalida" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
+<div><label class="label">Día salida (automático)</label><select id="dSalida" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
 <div><label class="label">Fecha salida</label><input id="fSalida" type="date" class="input-field" onchange="autoDia();check100()"></div>
 <div><label class="label">Sale de</label><input id="saleDe" type="text" class="input-field" placeholder="ROSARIO"></div>
 <div><label class="label">Km Salida</label><input id="kmSalida" type="number" class="input-field" placeholder="125430"></div>
 <div><label class="label">Hora llegada</label><div class="hora-wrap"><input id="hLlegada" type="time" class="input-field" value="14:45" oninput="check100();verHora()"><span id="verLlegada" class="hora-ver">14:45 hs</span></div></div>
-<div><label class="label">Día llegada</label><select id="dLlegada" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
+<div><label class="label">Día llegada (automático)</label><select id="dLlegada" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
 <div><label class="label">Fecha llegada</label><input id="fLlegada" type="date" class="input-field" onchange="autoDia();check100()"></div>
 <div><label class="label">Llega a</label><input id="llegaA" type="text" class="input-field" placeholder="CORDOBA"></div>
 <div><label class="label">Km Llegada</label><input id="kmLlegada" type="number" class="input-field" placeholder="125840" oninput="calcPreview()"></div>
@@ -104,13 +104,16 @@ document.getElementById('fLlegada').value = hoyISO;
 // --- REGLA: SAB 00:01-13:00 COMUN, SAB 13:00-00:00 100%, DOM 100%, FERIADO 100% ---
 const FERIADOS = new Set(["01-01","02-16","02-17","03-24","04-02","04-03","05-01","05-25","06-17","06-20","07-09","08-17","10-12","11-20","12-08","12-25"]);
 function esFeriado(fechaISO){ if(!fechaISO) return false; return FERIADOS.has(fechaISO.slice(5)); }
+// REFORMA: DIA AUTOMATICO AL ELEGIR FECHA - SOLO FECHA Y DIA
 function diaDesdeFecha(iso){ if(!iso) return ""; const dias=["Dom","Lun","Mar","Mie","Jue","Vie","Sab"]; return dias[new Date(iso+"T12:00:00").getDay()]; }
-function horaNum(h){ if(!h) return 0; let p=h.split(':'); return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0); }
-window.autoDia = function(){
-  let fS=document.getElementById('fSalida').value, fL=document.getElementById('fLlegada').value;
+function autoDia(){
+  let fS = document.getElementById('fSalida').value;
+  let fL = document.getElementById('fLlegada').value;
   if(fS) document.getElementById('dSalida').value = diaDesdeFecha(fS);
   if(fL) document.getElementById('dLlegada').value = diaDesdeFecha(fL);
-};
+}
+window.autoDia = autoDia;
+function horaNum(h){ if(!h) return 0; let p=h.split(':'); return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0); }
 function getDefaultPeriodo(){let hoy=new Date();let y=hoy.getFullYear(),m=hoy.getMonth();let desde=new Date(y,m,15);let hasta=new Date(y,m+1,15);if(hoy.getDate()<15){desde=new Date(y,m-1,15);hasta=new Date(y,m,15);}return {d:desde.toISOString().slice(0,10),h:hasta.toISOString().slice(0,10)};}
 async function guardarEnNube(){
   if(!usuarioActual) return;
@@ -180,7 +183,6 @@ window.verHora = function(){document.getElementById('verSalida').textContent=(do
 window.guardarPeriodo = async function(){ await guardarEnNube(); }
 window.setPeriodoActual = function(){let p=getDefaultPeriodo();document.getElementById('perDesde').value=p.d;document.getElementById('perHasta').value=p.h;guardarEnNube();render();}
 window.cambiarNombre = async function(){let nuevo=prompt('Ingresá el nombre:',document.getElementById('nombreChofer').textContent);if(nuevo&&nuevo.trim()!==''){nuevo=nuevo.trim().toUpperCase();document.getElementById('nombreChofer').textContent=nuevo;nombreGuardado=nuevo;await guardarEnNube();}}
-// ¿El viaje cruza el sábado 13:00 y por eso necesita corte?
 function necesitaCorteSabado(fS,hS,fL,hL){
   if(!fS || !fL) return false;
   if(esFeriado(fS) || esFeriado(fL)) return false;
@@ -190,22 +192,12 @@ function necesitaCorteSabado(fS,hS,fL,hL){
     if(diaS==='Sab' && horaNum(hS)<780 && horaNum(hL)>=780) return true;
     return false;
   }
-  // Viaje de varios días: si toca sábado
-  // Caso Sab -> Dom / Sab -> Lun: si sale antes de 13hs, necesita corte
   if(diaS==='Sab' && horaNum(hS)<780) return true;
-  // Caso Vie -> Sab / Vie -> Dom / etc: si llega sábado después de 13hs, necesita corte
   if(diaL==='Sab' && horaNum(hL)>=780) return true;
-  // Caso que pasa por un sábado en el medio (ej: Vie -> Lun)
   let d=new Date(fS+"T12:00:00"); let fin=new Date(fL+"T12:00:00");
   for(let cur=new Date(d); cur<=fin; cur.setDate(cur.getDate()+1)){
     if(cur.getDay()===6 && cur.toISOString().slice(0,10)!==fS && cur.toISOString().slice(0,10)!==fL) return true;
   }
-  return false;
-}
-function esSolo100(fS,fL){
-  if(esFeriado(fS) || esFeriado(fL)) return true;
-  let diaS=diaDesdeFecha(fS), diaL=diaDesdeFecha(fL);
-  if(diaS==='Dom' && diaL==='Dom') return true;
   return false;
 }
 window.check100 = function(){
@@ -268,22 +260,15 @@ window.guardar = async function(){
  if(!sale||!llega||kmS===0||kmL===0){alert('Completa datos');return;}if(kmL<=kmS){alert('Llegada > Salida');return;}
  let kmTotal=kmL-kmS,km100=0,kmCom=0;
  let diaRealS = diaDesdeFecha(fS), diaRealL = diaDesdeFecha(fL);
- // 1) FERIADO: todo 100%
  if(esFeriado(fS) || esFeriado(fL)){ km100=kmTotal; kmCom=0; }
- // 2) DOMINGO SOLO: todo 100%
  else if(diaRealS==='Dom' && diaRealL==='Dom'){ km100=kmTotal; kmCom=0; }
- // 3) SÁBADO 13:00: necesita corte -> comunes antes, 100% después
  else if(necesitaCorteSabado(fS,hS,fL,hL)){
    if(corte>0 && corte>kmS && corte<kmL){ kmCom=corte-kmS; km100=kmL-corte; }
    else { alert('Cargá el Km Corte Sábado 13:00'); return; }
  }
- // 4) SÁBADO DESPUÉS DE 13:00: todo 100%
  else if(diaRealS==='Sab' && horaNum(hS)>=780){ km100=kmTotal; kmCom=0; }
- // 5) DOMINGO COMO LLEGADA (ej: Sáb->Dom ya cubierto por corte, Vie->Dom ya cubierto) - si llega domingo y no necesitó corte, es porque salió domingo
  else if(diaRealL==='Dom'){ km100=kmTotal; kmCom=0; }
- // 6) SÁBADO ANTES DE 13:00 Y LLEGA ANTES DE 13:00: todo común
  else if(diaRealS==='Sab' && diaRealL==='Sab' && horaNum(hL)<780){ kmCom=kmTotal; km100=0; }
- // 7) RESTO: común
  else { kmCom=kmTotal; km100=0; }
  let kmViatico=Math.max(kmTotal,350);
  registros.push({hS,dS:diaRealS,fS,sale,hL,dL:diaRealL,fL,llega,kmComunes:kmCom,km100,kmViatico,control:ctrl});
