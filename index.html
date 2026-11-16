@@ -55,15 +55,15 @@ input[type="time"]::-webkit-calendar-picker-indicator{opacity:1}
 <div class="card p-5"><h2 class="text-[20px] font-black text-[#1e3a8a]">Nuevo registro</h2><div class="grid grid-cols-2 gap-3 mt-4">
 <div><label class="label">Hora salida</label><div class="hora-wrap"><input id="hSalida" type="time" class="input-field" value="08:30" oninput="check100();verHora()"><span id="verSalida" class="hora-ver">08:30 hs</span></div></div>
 <div><label class="label">Día salida</label><select id="dSalida" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
-<div><label class="label">Fecha salida</label><input id="fSalida" type="date" class="input-field"></div>
+<div><label class="label">Fecha salida</label><input id="fSalida" type="date" class="input-field" onchange="autoDia();check100()"></div>
 <div><label class="label">Sale de</label><input id="saleDe" type="text" class="input-field" placeholder="ROSARIO"></div>
 <div><label class="label">Km Salida</label><input id="kmSalida" type="number" class="input-field" placeholder="125430"></div>
 <div><label class="label">Hora llegada</label><div class="hora-wrap"><input id="hLlegada" type="time" class="input-field" value="14:45" oninput="check100();verHora()"><span id="verLlegada" class="hora-ver">14:45 hs</span></div></div>
 <div><label class="label">Día llegada</label><select id="dLlegada" class="input-field" onchange="check100()"><option>Lun</option><option>Mar</option><option>Mie</option><option>Jue</option><option>Vie</option><option>Sab</option><option>Dom</option></select></div>
-<div><label class="label">Fecha llegada</label><input id="fLlegada" type="date" class="input-field"></div>
+<div><label class="label">Fecha llegada</label><input id="fLlegada" type="date" class="input-field" onchange="autoDia();check100()"></div>
 <div><label class="label">Llega a</label><input id="llegaA" type="text" class="input-field" placeholder="CORDOBA"></div>
 <div><label class="label">Km Llegada</label><input id="kmLlegada" type="number" class="input-field" placeholder="125840" oninput="calcPreview()"></div>
-<div id="box100" class="col-span-2 hidden alert100 p-4 mt-2"><div class="text-[13px] font-black text-orange-600 mb-1">⚠️ ALERTA KM 100% • SÁB 13:00 A DOM 23:59</div><div class="text-[11px] text-gray-600 mb-3">Sábado 00:01-13:00 comunes, 13:00 en adelante 100%. Cargá odómetro de las 13hs.</div><div><label class="label" style="color:#ea580c">Km Corte Sábado 13:00</label><input id="kmCorte13" type="number" class="input-field" style="background:#ffedd5;border-color:#fb923c" placeholder="Ej: 100200" oninput="calcPreview()"></div><div id="calc100" class="text-center mt-3 text-[12px] font-black text-orange-700"></div></div>
+<div id="box100" class="col-span-2 hidden alert100 p-4 mt-2"><div id="titulo100" class="text-[13px] font-black text-orange-600 mb-1">⚠️ ALERTA KM 100% • SÁB 13:00 A DOM 23:59</div><div id="texto100" class="text-[11px] text-gray-600 mb-3">Sábado 00:01-13:00 comunes, 13:00 en adelante 100%. Cargá odómetro de las 13hs.</div><div id="wrapCorte"><label class="label" style="color:#ea580c">Km Corte Sábado 13:00</label><input id="kmCorte13" type="number" class="input-field" style="background:#ffedd5;border-color:#fb923c" placeholder="Ej: 100200" oninput="calcPreview()"></div><div id="calc100" class="text-center mt-3 text-[12px] font-black text-orange-700"></div></div>
 <div class="col-span-2"><label class="label" style="color:#15803d">Control (N°)</label><input id="controlNum" type="number" class="input-field" style="background:#dcfce7;border-color:#16a34a" value="1"></div>
 </div><button onclick="guardar()" class="w-full bg-[#1e3a8a] text-white font-black py-4 rounded-xl mt-5">Guardar y Calcular Ruta</button></div>
 <div class="flex gap-2"><button onclick="exportar()" class="flex-1 bg-white border border-[#1e3a8a] text-[#1e3a8a] font-bold py-3 rounded-xl text-sm">Exportar Excel</button><button onclick="borrarTodo()" class="flex-1 bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm">Borrar todo</button></div>
@@ -101,6 +101,16 @@ let usuarioActual = null;
 let hoyISO = new Date().toISOString().slice(0,10);
 document.getElementById('fSalida').value = hoyISO;
 document.getElementById('fLlegada').value = hoyISO;
+// --- REGLA: SAB 00:01-13:00 COMUN, SAB 13:00-00:00 100%, DOM 100%, FERIADO 100% ---
+const FERIADOS = new Set(["01-01","02-16","02-17","03-24","04-02","04-03","05-01","05-25","06-17","06-20","07-09","08-17","10-12","11-20","12-08","12-25"]);
+function esFeriado(fechaISO){ if(!fechaISO) return false; return FERIADOS.has(fechaISO.slice(5)); }
+function diaDesdeFecha(iso){ if(!iso) return ""; const dias=["Dom","Lun","Mar","Mie","Jue","Vie","Sab"]; return dias[new Date(iso+"T12:00:00").getDay()]; }
+function horaNum(h){ if(!h) return 0; let p=h.split(':'); return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0); }
+window.autoDia = function(){
+  let fS=document.getElementById('fSalida').value, fL=document.getElementById('fLlegada').value;
+  if(fS) document.getElementById('dSalida').value = diaDesdeFecha(fS);
+  if(fL) document.getElementById('dLlegada').value = diaDesdeFecha(fL);
+};
 function getDefaultPeriodo(){let hoy=new Date();let y=hoy.getFullYear(),m=hoy.getMonth();let desde=new Date(y,m,15);let hasta=new Date(y,m+1,15);if(hoy.getDate()<15){desde=new Date(y,m-1,15);hasta=new Date(y,m,15);}return {d:desde.toISOString().slice(0,10),h:hasta.toISOString().slice(0,10)};}
 async function guardarEnNube(){
   if(!usuarioActual) return;
@@ -134,7 +144,7 @@ async function cargarDeNube(){
   }
   document.getElementById('nombreChofer').textContent = nombreGuardado || "SIN NOMBRE";
   document.getElementById('emailUsuario').textContent = usuarioActual.email;
-  render(); check100(); verHora();
+  render(); autoDia(); check100(); verHora();
   await guardarEnNube();
 }
 window.loginEmail = async () => {
@@ -170,22 +180,113 @@ window.verHora = function(){document.getElementById('verSalida').textContent=(do
 window.guardarPeriodo = async function(){ await guardarEnNube(); }
 window.setPeriodoActual = function(){let p=getDefaultPeriodo();document.getElementById('perDesde').value=p.d;document.getElementById('perHasta').value=p.h;guardarEnNube();render();}
 window.cambiarNombre = async function(){let nuevo=prompt('Ingresá el nombre:',document.getElementById('nombreChofer').textContent);if(nuevo&&nuevo.trim()!==''){nuevo=nuevo.trim().toUpperCase();document.getElementById('nombreChofer').textContent=nuevo;nombreGuardado=nuevo;await guardarEnNube();}}
-function esVentana100(dia,hora){if(dia==='Dom')return true;if(dia==='Sab'){let h=parseInt(hora.split(':')[0])||0;if(h>=13)return true;}return false;}
-window.check100 = function(){let dS=document.getElementById('dSalida').value,hS=document.getElementById('hSalida').value,dL=document.getElementById('dLlegada').value,hL=document.getElementById('hLlegada').value;let box=document.getElementById('box100');if(dS==='Sab'||dL==='Sab'||dS==='Dom'||dL==='Dom'||esVentana100(dS,hS)||esVentana100(dL,hL)){box.classList.remove('hidden');}else{box.classList.add('hidden');}calcPreview();}
-function calcPreview(){let kmS=parseInt(document.getElementById('kmSalida').value)||0,kmL=parseInt(document.getElementById('kmLlegada').value)||0,corte=parseInt(document.getElementById('kmCorte13').value)||0;let el=document.getElementById('calc100');if(kmS>0&&kmL>0&&corte>0&&corte>kmS&&corte<kmL){let comunes=corte-kmS,c100=kmL-corte;el.innerHTML=`Comunes (00:01-13:00): ${comunes} km<br>100% (13:00+): ${c100} km`;}else{el.textContent='';}}
+// ¿El viaje cruza el sábado 13:00 y por eso necesita corte?
+function necesitaCorteSabado(fS,hS,fL,hL){
+  if(!fS || !fL) return false;
+  if(esFeriado(fS) || esFeriado(fL)) return false;
+  let diaS=diaDesdeFecha(fS), diaL=diaDesdeFecha(fL);
+  if(diaS==='Dom' && diaL==='Dom') return false;
+  if(fS===fL){
+    if(diaS==='Sab' && horaNum(hS)<780 && horaNum(hL)>=780) return true;
+    return false;
+  }
+  // Viaje de varios días: si toca sábado
+  // Caso Sab -> Dom / Sab -> Lun: si sale antes de 13hs, necesita corte
+  if(diaS==='Sab' && horaNum(hS)<780) return true;
+  // Caso Vie -> Sab / Vie -> Dom / etc: si llega sábado después de 13hs, necesita corte
+  if(diaL==='Sab' && horaNum(hL)>=780) return true;
+  // Caso que pasa por un sábado en el medio (ej: Vie -> Lun)
+  let d=new Date(fS+"T12:00:00"); let fin=new Date(fL+"T12:00:00");
+  for(let cur=new Date(d); cur<=fin; cur.setDate(cur.getDate()+1)){
+    if(cur.getDay()===6 && cur.toISOString().slice(0,10)!==fS && cur.toISOString().slice(0,10)!==fL) return true;
+  }
+  return false;
+}
+function esSolo100(fS,fL){
+  if(esFeriado(fS) || esFeriado(fL)) return true;
+  let diaS=diaDesdeFecha(fS), diaL=diaDesdeFecha(fL);
+  if(diaS==='Dom' && diaL==='Dom') return true;
+  return false;
+}
+window.check100 = function(){
+  autoDia();
+  let hS=document.getElementById('hSalida').value,hL=document.getElementById('hLlegada').value;
+  let fS=document.getElementById('fSalida').value,fL=document.getElementById('fLlegada').value;
+  let box=document.getElementById('box100');
+  let diaS=diaDesdeFecha(fS), diaL=diaDesdeFecha(fL);
+  if(esFeriado(fS) || esFeriado(fL)){
+    box.classList.remove('hidden');
+    document.getElementById('titulo100').textContent='🎉 FERIADO • TODO AL 100%';
+    document.getElementById('texto100').textContent='Feriado: todo el viaje al 100%. No hace falta corte.';
+    document.getElementById('wrapCorte').style.display='none';
+    document.getElementById('calc100').textContent='FERIADO: 100% de los km';
+  } else if(diaS==='Dom' && diaL==='Dom'){
+    box.classList.remove('hidden');
+    document.getElementById('titulo100').textContent='☀️ DOMINGO • TODO AL 100%';
+    document.getElementById('texto100').textContent='Domingo: todo al 100%, de 00:00 a 23:59. No hace falta corte.';
+    document.getElementById('wrapCorte').style.display='none';
+    document.getElementById('calc100').textContent='DOMINGO: 100% de los km';
+  } else if(necesitaCorteSabado(fS,hS,fL,hL)){
+    box.classList.remove('hidden');
+    document.getElementById('titulo100').textContent='⚠️ SÁBADO 13:00 • PARTE COMÚN Y PARTE 100%';
+    document.getElementById('texto100').textContent='Sáb 00:01-13:00 comunes, Sáb 13:00 en adelante 100%. Cargá odómetro de las 13hs del sábado.';
+    document.getElementById('wrapCorte').style.display='block';
+  } else if(diaS==='Sab' && horaNum(hS)>=780){
+    box.classList.remove('hidden');
+    document.getElementById('titulo100').textContent='⚠️ SÁBADO DESPUÉS DE 13:00 • TODO AL 100%';
+    document.getElementById('texto100').textContent='Saliste sábado después de las 13:00, todo al 100%.';
+    document.getElementById('wrapCorte').style.display='none';
+    document.getElementById('calc100').textContent='SÁB 13:00+: 100% de los km';
+  } else if(diaS==='Sab' || diaL==='Sab'){
+    box.classList.remove('hidden');
+    document.getElementById('titulo100').textContent='SÁBADO 00:01-13:00 • COMÚN';
+    document.getElementById('texto100').textContent='Sábado antes de las 13:00 va común. Si pasás las 13:00, cargá el corte.';
+    document.getElementById('wrapCorte').style.display='none';
+    document.getElementById('calc100').textContent='';
+  } else {
+    box.classList.add('hidden');
+  }
+  calcPreview();
+}
+function calcPreview(){
+  let kmS=parseInt(document.getElementById('kmSalida').value)||0,kmL=parseInt(document.getElementById('kmLlegada').value)||0,corte=parseInt(document.getElementById('kmCorte13').value)||0;let el=document.getElementById('calc100');
+  let fS=document.getElementById('fSalida').value,fL=document.getElementById('fLlegada').value;
+  let hS=document.getElementById('hSalida').value,hL=document.getElementById('hLlegada').value;
+  if(esFeriado(fS)||esFeriado(fL)){if(kmS>0&&kmL>0){el.innerHTML=`FERIADO: ${kmL-kmS} km todo al 100%`;}return;}
+  if(diaDesdeFecha(fS)==='Dom'&&diaDesdeFecha(fL)==='Dom'){if(kmS>0&&kmL>0){el.innerHTML=`DOMINGO: ${kmL-kmS} km todo al 100%`;}return;}
+  if(necesitaCorteSabado(fS,hS,fL,hL)){
+    if(kmS>0&&kmL>0&&corte>0&&corte>kmS&&corte<kmL){let comunes=corte-kmS,c100=kmL-corte;el.innerHTML=`Comunes (Sáb 00:01-13:00): ${comunes} km<br>100% (Sáb 13:00+): ${c100} km`;}
+    return;
+  }
+  if(diaDesdeFecha(fS)==='Sab'&&horaNum(hS)>=780){if(kmS>0&&kmL>0){el.innerHTML=`SÁB 13:00+: ${kmL-kmS} km todo al 100%`;}return;}
+}
 window.calcPreview = calcPreview;
 function filtradosPeriodo(){let d=document.getElementById('perDesde').value,h=document.getElementById('perHasta').value;return registros.filter(r=>{let f=r.fS||'';return f>=d&&f<=h;});}
 window.guardar = async function(){
- const hS=document.getElementById('hSalida').value,dS=document.getElementById('dSalida').value,fS=document.getElementById('fSalida').value,sale=document.getElementById('saleDe').value.toUpperCase(),llega=document.getElementById('llegaA').value.toUpperCase(),kmS=parseInt(document.getElementById('kmSalida').value)||0,hL=document.getElementById('hLlegada').value,dL=document.getElementById('dLlegada').value,fL=document.getElementById('fLlegada').value,kmL=parseInt(document.getElementById('kmLlegada').value)||0,ctrl=document.getElementById('controlNum').value||'1',corte=parseInt(document.getElementById('kmCorte13').value)||0;
+ autoDia();
+ const hS=document.getElementById('hSalida').value,fS=document.getElementById('fSalida').value,sale=document.getElementById('saleDe').value.toUpperCase(),llega=document.getElementById('llegaA').value.toUpperCase(),kmS=parseInt(document.getElementById('kmSalida').value)||0,hL=document.getElementById('hLlegada').value,fL=document.getElementById('fLlegada').value,kmL=parseInt(document.getElementById('kmLlegada').value)||0,ctrl=document.getElementById('controlNum').value||'1',corte=parseInt(document.getElementById('kmCorte13').value)||0;
  if(!sale||!llega||kmS===0||kmL===0){alert('Completa datos');return;}if(kmL<=kmS){alert('Llegada > Salida');return;}
  let kmTotal=kmL-kmS,km100=0,kmCom=0;
- if(dS==='Sab'&&dL==='Sab'){
-   let hSi=parseInt(hS.split(':')[0])||0;
-   let hLi=(hL==='00:00')?24:(parseInt(hL.split(':')[0])||0);
-   if(hSi<13&&hLi>=13){if(corte>0&&corte>kmS&&corte<kmL){kmCom=corte-kmS;km100=kmL-corte;}else{alert('Cargá el Km Corte 13:00');return;}}else if(hSi>=13&&hLi>=13){km100=kmTotal;kmCom=0;}else{kmCom=kmTotal;km100=0;}
- }else if(dS==='Dom'||dL==='Dom'){km100=kmTotal;kmCom=0;}else if(dS==='Sab'&&esVentana100(dS,hS)){km100=kmTotal;kmCom=0;}else if(dL==='Sab'&&esVentana100(dL,hL)){if(corte>0){kmCom=corte-kmS;km100=kmL-corte;}else{km100=kmTotal;kmCom=0;}}else{kmCom=kmTotal;km100=0;}
+ let diaRealS = diaDesdeFecha(fS), diaRealL = diaDesdeFecha(fL);
+ // 1) FERIADO: todo 100%
+ if(esFeriado(fS) || esFeriado(fL)){ km100=kmTotal; kmCom=0; }
+ // 2) DOMINGO SOLO: todo 100%
+ else if(diaRealS==='Dom' && diaRealL==='Dom'){ km100=kmTotal; kmCom=0; }
+ // 3) SÁBADO 13:00: necesita corte -> comunes antes, 100% después
+ else if(necesitaCorteSabado(fS,hS,fL,hL)){
+   if(corte>0 && corte>kmS && corte<kmL){ kmCom=corte-kmS; km100=kmL-corte; }
+   else { alert('Cargá el Km Corte Sábado 13:00'); return; }
+ }
+ // 4) SÁBADO DESPUÉS DE 13:00: todo 100%
+ else if(diaRealS==='Sab' && horaNum(hS)>=780){ km100=kmTotal; kmCom=0; }
+ // 5) DOMINGO COMO LLEGADA (ej: Sáb->Dom ya cubierto por corte, Vie->Dom ya cubierto) - si llega domingo y no necesitó corte, es porque salió domingo
+ else if(diaRealL==='Dom'){ km100=kmTotal; kmCom=0; }
+ // 6) SÁBADO ANTES DE 13:00 Y LLEGA ANTES DE 13:00: todo común
+ else if(diaRealS==='Sab' && diaRealL==='Sab' && horaNum(hL)<780){ kmCom=kmTotal; km100=0; }
+ // 7) RESTO: común
+ else { kmCom=kmTotal; km100=0; }
  let kmViatico=Math.max(kmTotal,350);
- registros.push({hS,dS,fS,sale,hL,dL,fL,llega,kmComunes:kmCom,km100,kmViatico,control:ctrl});
+ registros.push({hS,dS:diaRealS,fS,sale,hL,dL:diaRealL,fL,llega,kmComunes:kmCom,km100,kmViatico,control:ctrl});
  await guardarEnNube(); render();
  document.getElementById('saleDe').value='';document.getElementById('llegaA').value='';document.getElementById('kmSalida').value=kmL;document.getElementById('kmLlegada').value='';document.getElementById('kmCorte13').value='';document.getElementById('calc100').textContent='';check100();
 }
